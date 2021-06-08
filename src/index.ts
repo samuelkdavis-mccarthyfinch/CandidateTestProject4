@@ -1,27 +1,18 @@
-import debugFactory from 'debug';
-import { Command, flags } from '@oclif/command';
+import process from 'process';
+import fetch from 'node-fetch';
 
-const debug = debugFactory('hello');
+const getUrl = (concept: string) => `http://api.conceptnet.io/c/en/${concept}`;
 
-export class HelloCommand extends Command {
-  static description = 'describe the command here';
+const getData = async (concept: string) => {
+  const url = getUrl(concept);
+  const response = await fetch(url);
+  const result = await response.json();
+  return result;
+};
 
-  static flags = {
-    version: flags.version({ char: 'v' }),
-    help: flags.help({ char: 'h' }),
-    name: flags.string({ char: 'n', description: 'name to print' }),
-    force: flags.boolean({ char: 'f' }),
-  };
-
-  static args = [{ name: 'file' }];
-
-  async run() {
-    const { args, flags } = this.parse(HelloCommand);
-
-    const name = flags.name || 'world';
-    this.log(`hello ${name} from ./src/index.ts`);
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`);
-    }
-  }
+async function main() {
+  const [, , concept] = process.argv;
+  await getData(concept);
 }
+
+main().catch((e) => console.error(e));
