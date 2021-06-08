@@ -53,7 +53,7 @@ enum NodeType {
   Edge = 'Edge',
   Node = 'Node',
 }
-interface Intermediate {
+interface TermRelationships {
   term: Term;
   ancestors: Record<string, boolean>;
 }
@@ -76,9 +76,9 @@ const conceptToTerm = (concept: string, language: string = Language.English): Te
 
 const urlGenerator = {
   termAncestors: (term: Term) => `http://api.conceptnet.io/query?start=${encodeURIComponent(term.value)}&rel=/r/IsA`,
-  edgesBetweenChildAndParent: (maybeChildTerm: Term, maybeParentTerm: Term) =>
-    `http://api.conceptnet.io/query?start=${encodeURIComponent(maybeChildTerm.value)}&end=${encodeURIComponent(
-      maybeParentTerm.value,
+  edgesBetweenChildAndParent: (args: { parent: Term; child: Term }) =>
+    `http://api.conceptnet.io/query?start=${encodeURIComponent(args.child.value)}&end=${encodeURIComponent(
+      args.parent.value,
     )}&rel=/r/IsA`,
 };
 
@@ -88,52 +88,52 @@ const getDataFromApi = async (url: string): Promise<ConceptNetResponse> => {
   return result;
 };
 
+const getAncestralEdges = async (term: Term) => {
+  const data = await getDataFromApi(urlGenerator.termAncestors(term));
+  const edges = data.edges.filter((x) => x.rel['@id'] === RelationId.IsA);
+  return edges;
+};
+
 const isParentOfATerm = async (args: { parent: Term; child: Term }) => {
-  const data = await getDataFromApi(urlGenerator.edgesBetweenChildAndParent(args.child, args.parent));
+  const data = await getDataFromApi(urlGenerator.edgesBetweenChildAndParent(args));
   return data.edges.length > 0;
 };
 
-const buildHierarchy = (root: Intermediate, intermediates: Array<Intermediate>): Relationships => {
-  const child = intermediates.find((x) => x.ancestors[root.term.value]);
-  if (!child) {
-    return {
-      [root.term.value]: {},
-    };
-  }
+const buildHierarchy = (root: TermRelationships, termRelationships: Array<TermRelationships>): Relationships => {
+  const child = termRelationships.find((x) => x.ancestors[root.term.value]);
 
   return {
-    [root.term.value]: buildHierarchy(child, intermediates),
+    [root.term.value]: child ? buildHierarchy(child, termRelationships) : {},
   };
 };
 
-const getIntermediaryNodes = async (term: Term) => {
-  const data = await getDataFromApi(urlGenerator.termAncestors(term));
-  const edges = data.edges.filter((x) => x.rel['@id'] === RelationId.IsA);
-  const intermediates: Array<Intermediate> = edges.map((x) => {
+const getTermRelationships = async (term: Term) => {
+  const edges = await getAncestralEdges(term);
+  const termRelationships: Array<TermRelationships> = edges.map((x) => {
     return {
       term: asTerm(x.end.term),
       ancestors: {},
     };
   });
 
-  for (const m of intermediates) {
-    for (const innerEdgeTerm of intermediates) {
-      if (m === innerEdgeTerm) {
+  for (const parentTerm of termRelationships) {
+    for (const childTerm of termRelationships) {
+      if (parentTerm === childTerm) {
         continue;
       }
 
       if (
         await isParentOfATerm({
-          child: innerEdgeTerm.term,
-          parent: m.term,
+          parent: parentTerm.term,
+          child: childTerm.term,
         })
       ) {
-        innerEdgeTerm.ancestors[m.term.value] = true;
+        childTerm.ancestors[parentTerm.term.value] = true;
       }
     }
   }
 
-  intermediates.push({
+  termRelationships.push({
     term: term,
     ancestors: edges.reduce(
       (sum: Record<string, boolean>, x) => ({
@@ -144,7 +144,7 @@ const getIntermediaryNodes = async (term: Term) => {
     ),
   });
 
-  return intermediates;
+  return termRelationships;
 };
 
 async function main() {
@@ -152,9 +152,13 @@ async function main() {
   console.log(`Looking up concept hierarchy for ${concept}`);
 
   const term = conceptToTerm(concept);
-  const intermediaries = await getIntermediaryNodes(term);
-  const roots = intermediaries.filter((x) => Object.keys(x.ancestors).length === 0);
-  const chains = roots.map((x) => buildHierarchy(x, intermediaries));
+  const termRelationships = await getTermRelationships(term);
+  const roots = termRelationships.filter((x) => Object.keys(x.ancestors).length === 0);
+  if (roots.length === 0) {
+    throw new Error('No root nodes were found');
+  }
+
+  const chains = roots.map((x) => buildHierarchy(x, termRelationships));
 
   console.log(util.inspect(chains, { depth: 15 }));
 }
