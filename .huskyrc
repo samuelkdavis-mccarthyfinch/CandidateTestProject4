@@ -1,0 +1,5 @@
+{
+  "hooks": {
+    "pre-push": "FORCE_COLOR=1 npx npm-run-all --print-label --print-name --parallel lint build:check test:coverage"
+  }
+}
