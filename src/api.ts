@@ -8,6 +8,7 @@ interface Query {
   start?: string;
   end?: string;
   rel?: RelationId;
+  limit?: number;
 }
 
 export type ConceptNetResponse = {
@@ -24,9 +25,9 @@ const getQueryUrl = (query: Query) => {
 };
 
 const urlGenerator = {
-  termAncestors: (term: Term) => getQueryUrl({ start: term.value, rel: RelationId.IsA }),
+  termAncestors: (term: Term) => getQueryUrl({ start: term.value, rel: RelationId.IsA, limit: 100 }),
   edgesBetweenChildAndParent: (args: { parent: Term; child: Term }) =>
-    getQueryUrl({ start: args.child.value, end: args.parent.value, rel: RelationId.IsA }),
+    getQueryUrl({ start: args.child.value, end: args.parent.value, rel: RelationId.IsA, limit: 100 }),
 };
 
 const promiseThrottle = new PromiseThrottle({
