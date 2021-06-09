@@ -1,6 +1,11 @@
 import process from 'process';
 import util from 'util';
+
+import PromiseThrottle from 'promise-throttle';
 import fetch from 'node-fetch';
+import { URL } from 'url';
+
+const MAX_REQUESTS_IN_A_MINUTE = 120;
 
 const termSymbol = Symbol('term');
 interface Term {
@@ -62,6 +67,12 @@ interface Relationships {
   [key: string]: Relationships;
 }
 
+interface Query {
+  start?: string;
+  end?: string;
+  rel?: RelationId;
+}
+
 const asTerm = (termString: string): Term => {
   return {
     value: termString,
@@ -74,16 +85,29 @@ const conceptToTerm = (concept: string, language: string = Language.English): Te
   [termSymbol]: true,
 });
 
-const urlGenerator = {
-  termAncestors: (term: Term) => `http://api.conceptnet.io/query?start=${encodeURIComponent(term.value)}&rel=/r/IsA`,
-  edgesBetweenChildAndParent: (args: { parent: Term; child: Term }) =>
-    `http://api.conceptnet.io/query?start=${encodeURIComponent(args.child.value)}&end=${encodeURIComponent(
-      args.parent.value,
-    )}&rel=/r/IsA`,
+const getQueryUrl = (query: Query) => {
+  const url = new URL('http://api.conceptnet.io/query');
+  for (const [key, value] of Object.entries(query)) {
+    url.searchParams.set(key, value);
+  }
+
+  return url.toString();
 };
 
+const urlGenerator = {
+  termAncestors: (term: Term) => getQueryUrl({ start: term.value, rel: RelationId.IsA }),
+  edgesBetweenChildAndParent: (args: { parent: Term; child: Term }) =>
+    getQueryUrl({ start: args.child.value, end: args.parent.value, rel: RelationId.IsA }),
+};
+
+const promiseThrottle = new PromiseThrottle({
+  requestsPerSecond: MAX_REQUESTS_IN_A_MINUTE / 60,
+  promiseImplementation: Promise,
+});
+
 const getDataFromApi = async (url: string): Promise<ConceptNetResponse> => {
-  const response = await fetch(url);
+  console.log(`Making a request to ${url}`);
+  const response = await promiseThrottle.add(() => fetch(url));
   const result = (await response.json()) as ConceptNetResponse;
   return result;
 };
@@ -97,14 +121,6 @@ const getAncestralEdges = async (term: Term) => {
 const isParentOfATerm = async (args: { parent: Term; child: Term }) => {
   const data = await getDataFromApi(urlGenerator.edgesBetweenChildAndParent(args));
   return data.edges.length > 0;
-};
-
-const buildHierarchy = (root: TermRelationships, termRelationships: Array<TermRelationships>): Relationships => {
-  const child = termRelationships.find((x) => x.ancestors[root.term.value]);
-
-  return {
-    [root.term.value]: child ? buildHierarchy(child, termRelationships) : {},
-  };
 };
 
 const getTermRelationships = async (term: Term) => {
@@ -145,6 +161,14 @@ const getTermRelationships = async (term: Term) => {
   });
 
   return termRelationships;
+};
+
+const buildHierarchy = (root: TermRelationships, termRelationships: Array<TermRelationships>): Relationships => {
+  const child = termRelationships.find((x) => x.ancestors[root.term.value]);
+
+  return {
+    [root.term.value]: child ? buildHierarchy(child, termRelationships) : {},
+  };
 };
 
 async function main() {

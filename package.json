@@ -46,7 +46,8 @@
   },
   "homepage": "https://github.com/deadarius/concept-lookup#readme",
   "dependencies": {
-    "node-fetch": "^2.6.1"
+    "node-fetch": "^2.6.1",
+    "promise-throttle": "^1.1.2"
   },
   "devDependencies": {
     "@types/jest": "^26.0.23",
