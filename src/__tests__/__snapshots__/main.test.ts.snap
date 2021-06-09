@@ -1,0 +1,52 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`buildHierarchy correct result 1`] = `
+Object {
+  "term_1": Object {
+    "term_2": Object {
+      "term_3": Object {},
+    },
+  },
+}
+`;
+
+exports[`getTermRelationships correct result 1`] = `
+Array [
+  Object {
+    "ancestors": Object {},
+    "term": Object {
+      "value": "term_1",
+      Symbol(term): true,
+    },
+  },
+  Object {
+    "ancestors": Object {
+      "term_1": true,
+    },
+    "term": Object {
+      "value": "term_2",
+      Symbol(term): true,
+    },
+  },
+  Object {
+    "ancestors": Object {
+      "term_2": true,
+    },
+    "term": Object {
+      "value": "term_3",
+      Symbol(term): true,
+    },
+  },
+  Object {
+    "ancestors": Object {
+      "term_1": true,
+      "term_2": true,
+      "term_3": true,
+    },
+    "term": Object {
+      "value": "term",
+      Symbol(term): true,
+    },
+  },
+]
+`;
