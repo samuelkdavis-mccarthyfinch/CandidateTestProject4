@@ -70,6 +70,9 @@ export async function findConceptHierarchiesForConcept(concept: string) {
 
 export async function main() {
   const [, , concept] = process.argv;
+  if (!concept) {
+    throw new Error('Please provide a concept you want to lookup as an argument to the program');
+  }
   console.log(`Looking up concept hierarchy for ${concept}`);
 
   const chains = await findConceptHierarchiesForConcept(concept);
