@@ -59,6 +59,7 @@ export async function findConceptHierarchiesForConcept(concept: string) {
   const term = conceptToTerm(concept);
   const termRelationships = await getTermRelationships()(term);
   const roots = termRelationships.filter((x) => Object.keys(x.ancestors).length === 0);
+
   if (roots.length === 0) {
     throw new Error('No root nodes were found');
   }

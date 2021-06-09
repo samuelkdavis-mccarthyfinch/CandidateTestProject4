@@ -40,6 +40,7 @@ const getDataFromApi =
     console.log(`Making a request to ${url}`);
     const response = await promiseThrottle.add(() => deps.fetch(url));
     const result = (await response.json()) as ConceptNetResponse;
+
     return result;
   };
 
@@ -47,10 +48,13 @@ export const getApi = (deps: { fetch: typeof fetch } = { fetch }): ConceptNetApi
   getAncestralEdges: async (term) => {
     const data = await getDataFromApi(deps)(urlGenerator.termAncestors(term));
     const edges = data.edges.filter((x) => x.rel['@id'] === RelationId.IsA);
+
     return edges;
   },
+
   isParentOfATerm: async (args) => {
     const data = await getDataFromApi(deps)(urlGenerator.edgesBetweenChildAndParent(args));
+
     return data.edges.length > 0;
   },
 });

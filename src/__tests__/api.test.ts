@@ -1,6 +1,6 @@
-import { ConceptNetResponse, getApi } from '../api';
+import { getApi } from '../api';
 import fetch from 'node-fetch';
-import { RelationId, Term } from '../types';
+import { RelationId } from '../types';
 import { asTerm } from '../utils';
 
 describe('api', () => {
