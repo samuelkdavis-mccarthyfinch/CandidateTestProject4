@@ -1,3 +1,3 @@
-# typescript-template
+# start
 
-Basic typescript template
+`npm start -- "supreme court"`
