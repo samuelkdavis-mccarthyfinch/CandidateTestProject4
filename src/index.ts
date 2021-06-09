@@ -1,7 +1,7 @@
 import process from 'process';
 import util from 'util';
 
-import { api } from './api';
+import { getApi } from './api';
 import { Term, TermRelationships, Relationships, ConceptNetApi } from './types';
 import { asTerm, conceptToTerm } from './utils';
 
@@ -58,7 +58,7 @@ async function main() {
   console.log(`Looking up concept hierarchy for ${concept}`);
 
   const term = conceptToTerm(concept);
-  const termRelationships = await getTermRelationships({ api })(term);
+  const termRelationships = await getTermRelationships({ api: getApi() })(term);
   const roots = termRelationships.filter((x) => Object.keys(x.ancestors).length === 0);
   if (roots.length === 0) {
     throw new Error('No root nodes were found');

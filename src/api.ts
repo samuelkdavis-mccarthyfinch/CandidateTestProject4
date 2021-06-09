@@ -10,7 +10,7 @@ interface Query {
   rel?: RelationId;
 }
 
-type ConceptNetResponse = {
+export type ConceptNetResponse = {
   edges: Array<Edge>;
 };
 
@@ -34,21 +34,23 @@ const promiseThrottle = new PromiseThrottle({
   promiseImplementation: Promise,
 });
 
-const getDataFromApi = async (url: string): Promise<ConceptNetResponse> => {
-  console.log(`Making a request to ${url}`);
-  const response = await promiseThrottle.add(() => fetch(url));
-  const result = (await response.json()) as ConceptNetResponse;
-  return result;
-};
+const getDataFromApi =
+  (deps: { fetch: typeof fetch }) =>
+  async (url: string): Promise<ConceptNetResponse> => {
+    console.log(`Making a request to ${url}`);
+    const response = await promiseThrottle.add(() => deps.fetch(url));
+    const result = (await response.json()) as ConceptNetResponse;
+    return result;
+  };
 
-export const api: ConceptNetApi = {
+export const getApi = (deps: { fetch: typeof fetch } = { fetch }): ConceptNetApi => ({
   getAncestralEdges: async (term) => {
-    const data = await getDataFromApi(urlGenerator.termAncestors(term));
+    const data = await getDataFromApi(deps)(urlGenerator.termAncestors(term));
     const edges = data.edges.filter((x) => x.rel['@id'] === RelationId.IsA);
     return edges;
   },
   isParentOfATerm: async (args) => {
-    const data = await getDataFromApi(urlGenerator.edgesBetweenChildAndParent(args));
+    const data = await getDataFromApi(deps)(urlGenerator.edgesBetweenChildAndParent(args));
     return data.edges.length > 0;
   },
-};
+});

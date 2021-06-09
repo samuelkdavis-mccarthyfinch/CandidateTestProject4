@@ -1,0 +1,42 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`api getAncestralEdges correct result 1`] = `
+Array [
+  Array [
+    "http://api.conceptnet.io/query?start=mock_term&rel=%2Fr%2FIsA",
+  ],
+]
+`;
+
+exports[`api getAncestralEdges correct result 2`] = `
+Array [
+  Object {
+    "@id": "1",
+    "rel": Object {
+      "@id": "/r/IsA",
+    },
+  },
+  Object {
+    "@id": "3",
+    "rel": Object {
+      "@id": "/r/IsA",
+    },
+  },
+]
+`;
+
+exports[`api isParentOfATerm no 1`] = `
+Array [
+  Array [
+    "http://api.conceptnet.io/query?start=mock_term_1&end=mock_term_1&rel=%2Fr%2FIsA",
+  ],
+]
+`;
+
+exports[`api isParentOfATerm yes 1`] = `
+Array [
+  Array [
+    "http://api.conceptnet.io/query?start=mock_term_1&end=mock_term_1&rel=%2Fr%2FIsA",
+  ],
+]
+`;
